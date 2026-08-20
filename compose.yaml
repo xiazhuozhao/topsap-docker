@@ -1,0 +1,52 @@
+services:
+  tls-relay:
+    build:
+      context: ./relay
+    image: topsec-vpn-tls-relay:local
+    container_name: topsec-vpn-tls-relay
+    restart: unless-stopped
+    environment:
+      VPN_GATEWAY_HOST: ${VPN_GATEWAY_HOST:?Set VPN_GATEWAY_HOST in .env}
+      VPN_GATEWAY_PORT: ${VPN_GATEWAY_PORT:-44443}
+    expose:
+      - "44443"
+
+  topsap:
+    build:
+      context: .
+    image: topsec-vpn:3.5.2.36.2
+    container_name: topsec-vpn
+    restart: unless-stopped
+    depends_on:
+      - tls-relay
+    cap_add:
+      - NET_ADMIN
+    devices:
+      - /dev/net/tun:/dev/net/tun
+    ports:
+      - "127.0.0.1:1088:1080"
+      - "10022:10022"
+    environment:
+      VPN_SERVER_FILE: /run/secrets/vpn_server
+      VPN_USERNAME_FILE: /run/secrets/vpn_username
+      VPN_PASSWORD_FILE: /run/secrets/vpn_password
+      VPN_TOTP_FILE: /run/secrets/vpn_totp
+      VPN_KICK_EXISTING: "yes"
+      VPN_CONNECT_ADDRESS: tls-relay:44443
+      SSH_TARGET: ${SSH_TARGET:?Set SSH_TARGET in .env}
+      SSH_TARGET_PORT: ${SSH_TARGET_PORT:-22}
+    secrets:
+      - vpn_server
+      - vpn_username
+      - vpn_password
+      - vpn_totp
+
+secrets:
+  vpn_server:
+    file: ./secrets/vpn_server
+  vpn_username:
+    file: ./secrets/vpn_username
+  vpn_password:
+    file: ./secrets/vpn_password
+  vpn_totp:
+    file: ./secrets/vpn_totp
