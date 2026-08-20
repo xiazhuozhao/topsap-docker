@@ -29,6 +29,4 @@ COPY docker/danted.conf /etc/danted.conf
 RUN chmod 0755 /usr/local/bin/entrypoint.sh /usr/local/bin/totp /usr/local/bin/vpn-login \
     && chmod 0644 /etc/danted.conf
 
-EXPOSE 1080 10022
-
 ENTRYPOINT ["/usr/local/bin/entrypoint.sh"]

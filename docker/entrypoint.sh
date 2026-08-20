@@ -2,7 +2,6 @@
 set -Eeuo pipefail
 
 required_files=(
-  "${VPN_SERVER_FILE:?}"
   "${VPN_USERNAME_FILE:?}"
   "${VPN_PASSWORD_FILE:?}"
   "${VPN_TOTP_FILE:?}"
@@ -47,7 +46,17 @@ fi
 ip link set dev tun0 mtu 1300
 
 danted -p /tmp/danted.pid -f /etc/danted.conf &
-socat "TCP-LISTEN:10022,reuseaddr,fork" "TCP:${SSH_TARGET:?}:${SSH_TARGET_PORT:-22}" &
+ssh_forward_listen_port="${SSH_FORWARD_LISTEN_PORT:?}"
+ssh_target_port="${SSH_TARGET_PORT:?}"
 
-echo "VPN is ready: SOCKS5=:1080 SSH-forward=:10022 -> ${SSH_TARGET}:${SSH_TARGET_PORT:-22}"
+for port in "$ssh_forward_listen_port" "$ssh_target_port"; do
+  if [[ ! "$port" =~ ^[0-9]{1,5}$ ]] || (( port < 1 || port > 65535 )); then
+    echo "Invalid TCP port: $port" >&2
+    exit 5
+  fi
+done
+
+socat "TCP-LISTEN:${ssh_forward_listen_port},reuseaddr,fork" "TCP:${SSH_TARGET:?}:${ssh_target_port}" &
+
+echo "VPN is ready: SOCKS5=:1080 SSH-forward=:${ssh_forward_listen_port} -> ${SSH_TARGET}:${ssh_target_port}"
 wait -n

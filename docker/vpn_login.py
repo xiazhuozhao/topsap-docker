@@ -36,7 +36,7 @@ def encoded(value: str) -> str:
 def main() -> int:
     username = read_secret("VPN_USERNAME_FILE")
     password = read_secret("VPN_PASSWORD_FILE")
-    address = os.environ.get("VPN_CONNECT_ADDRESS") or read_secret("VPN_SERVER_FILE")
+    address = os.environ["VPN_CONNECT_ADDRESS"]
     host, port = address.rsplit(":", 1)
 
     common = {

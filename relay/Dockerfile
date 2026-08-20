@@ -18,6 +18,4 @@ COPY entrypoint.sh /usr/local/bin/relay-entrypoint.sh
 
 RUN chmod 0755 /usr/local/bin/relay-entrypoint.sh
 
-EXPOSE 44443
-
 CMD ["/usr/local/bin/relay-entrypoint.sh"]

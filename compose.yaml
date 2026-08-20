@@ -2,20 +2,19 @@ services:
   tls-relay:
     build:
       context: ./relay
-    image: topsec-vpn-tls-relay:local
-    container_name: topsec-vpn-tls-relay
     restart: unless-stopped
     environment:
       VPN_GATEWAY_HOST: ${VPN_GATEWAY_HOST:?Set VPN_GATEWAY_HOST in .env}
-      VPN_GATEWAY_PORT: ${VPN_GATEWAY_PORT:-44443}
+      VPN_GATEWAY_PORT: ${VPN_GATEWAY_PORT:?Set VPN_GATEWAY_PORT in .env}
+      VPN_RELAY_PORT: ${VPN_RELAY_PORT:?Set VPN_RELAY_PORT in .env}
     expose:
-      - "44443"
+      - "${VPN_RELAY_PORT:?Set VPN_RELAY_PORT in .env}"
 
   topsap:
     build:
       context: .
-    image: topsec-vpn:3.5.2.36.2
-    container_name: topsec-vpn
+      args:
+        TOPSAP_DEB: ${TOPSAP_DEB:?Set TOPSAP_DEB in .env}
     restart: unless-stopped
     depends_on:
       - tls-relay
@@ -24,26 +23,23 @@ services:
     devices:
       - /dev/net/tun:/dev/net/tun
     ports:
-      - "127.0.0.1:1088:1080"
-      - "10022:10022"
+      - "127.0.0.1:${SOCKS_HOST_PORT:?Set SOCKS_HOST_PORT in .env}:1080"
+      - "${SSH_FORWARD_BIND_ADDRESS:?Set SSH_FORWARD_BIND_ADDRESS in .env}:${SSH_FORWARD_HOST_PORT:?Set SSH_FORWARD_HOST_PORT in .env}:${SSH_FORWARD_LISTEN_PORT:?Set SSH_FORWARD_LISTEN_PORT in .env}"
     environment:
-      VPN_SERVER_FILE: /run/secrets/vpn_server
       VPN_USERNAME_FILE: /run/secrets/vpn_username
       VPN_PASSWORD_FILE: /run/secrets/vpn_password
       VPN_TOTP_FILE: /run/secrets/vpn_totp
-      VPN_KICK_EXISTING: "yes"
-      VPN_CONNECT_ADDRESS: tls-relay:44443
+      VPN_KICK_EXISTING: ${VPN_KICK_EXISTING:?Set VPN_KICK_EXISTING in .env}
+      VPN_CONNECT_ADDRESS: tls-relay:${VPN_RELAY_PORT:?Set VPN_RELAY_PORT in .env}
       SSH_TARGET: ${SSH_TARGET:?Set SSH_TARGET in .env}
-      SSH_TARGET_PORT: ${SSH_TARGET_PORT:-22}
+      SSH_TARGET_PORT: ${SSH_TARGET_PORT:?Set SSH_TARGET_PORT in .env}
+      SSH_FORWARD_LISTEN_PORT: ${SSH_FORWARD_LISTEN_PORT:?Set SSH_FORWARD_LISTEN_PORT in .env}
     secrets:
-      - vpn_server
       - vpn_username
       - vpn_password
       - vpn_totp
 
 secrets:
-  vpn_server:
-    file: ./secrets/vpn_server
   vpn_username:
     file: ./secrets/vpn_username
   vpn_password:
